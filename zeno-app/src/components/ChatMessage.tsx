@@ -120,11 +120,11 @@ export default function ChatMessage({ message, onSpeak, isSpeaking }: ChatMessag
 
         <div className="relative px-4 py-3">
           {/* Content */}
-          <div className="text-sm leading-relaxed">
+          <div className="text-[14.5px] leading-[1.8] tracking-wide">
             {isUser ? (
-              <p className="text-gray-100">{message.content}</p>
+              <p className="text-gray-100 whitespace-pre-wrap">{message.content}</p>
             ) : (
-              <div className="prose prose-invert prose-sm max-w-none prose-p:my-1.5 prose-headings:my-2.5 prose-headings:text-gray-100 prose-pre:bg-black/50 prose-pre:border prose-pre:border-cyan-500/10 prose-pre:rounded-xl prose-li:text-gray-300">
+              <div className="zeno-markdown">
                 <ReactMarkdown>{message.content}</ReactMarkdown>
                 {message.isStreaming && (
                   <motion.span

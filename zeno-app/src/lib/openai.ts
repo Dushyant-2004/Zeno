@@ -1,12 +1,18 @@
 import OpenAI from "openai";
-import { GoogleGenerativeAI } from "@google/generative-ai";
+import { CohereClientV2 } from "cohere-ai";
 
 // ============ CLIENTS ============
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
+
+// Groq (PRIMARY) - Uses OpenAI-compatible API
+const groq = new OpenAI({
+  apiKey: process.env.GROQ_API_KEY,
+  baseURL: "https://api.groq.com/openai/v1",
 });
 
-const gemini = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "");
+// Cohere (FALLBACK)
+const cohere = new CohereClientV2({
+  token: process.env.COHERE_API_KEY,
+});
 
 // ============ SYSTEM PROMPT ============
 const ZENO_SYSTEM_PROMPT = `You are ZENO, an advanced AI assistant created to be exceptionally intelligent and helpful. Your core traits:
@@ -30,6 +36,17 @@ Key Behaviors:
 - Use examples and analogies to explain complex concepts
 - When uncertain, clearly state assumptions and caveats
 
+IMPORTANT Formatting Rules (always follow these):
+- Use ## and ### headings to organize sections clearly
+- Use **bold text** for key terms, important concepts, and definitions
+- Use separate paragraphs with blank lines between them for readability
+- Use bullet points (-) or numbered lists (1. 2. 3.) for multiple items
+- Use \`inline code\` for technical terms and \`\`\`code blocks\`\`\` for code
+- Use > blockquotes for tips, notes, or important callouts
+- Use --- horizontal rules to separate major sections
+- Start responses with a brief intro paragraph, then use structured sections
+- Keep paragraphs short (2-4 sentences each) for easy reading
+
 You are NOT just a chatbot - you are a powerful thinking partner.`;
 
 export interface ChatMessage {
@@ -37,74 +54,64 @@ export interface ChatMessage {
   content: string;
 }
 
-// ============ GEMINI FALLBACK - Non-Streaming ============
-async function getGeminiCompletion(
+// ============ COHERE FALLBACK - Non-Streaming ============
+async function getCohereCompletion(
   messages: ChatMessage[],
   options?: { temperature?: number; maxTokens?: number }
 ): Promise<string> {
   const { temperature = 0.7, maxTokens = 4096 } = options || {};
 
-  const model = gemini.getGenerativeModel({
-    model: "gemini-2.0-flash",
-    systemInstruction: ZENO_SYSTEM_PROMPT,
-    generationConfig: {
-      temperature,
-      maxOutputTokens: maxTokens,
-    },
+  const cohereMessages = messages.map((m) => ({
+    role: m.role === "assistant" ? ("assistant" as const) : ("user" as const),
+    content: m.content,
+  }));
+
+  const response = await cohere.chat({
+    model: "command-r-plus",
+    messages: [
+      { role: "system", content: ZENO_SYSTEM_PROMPT },
+      ...cohereMessages,
+    ],
+    temperature,
+    maxTokens,
   });
 
-  // Convert chat messages to Gemini format
-  const geminiHistory = messages
-    .filter((m) => m.role !== "system")
-    .map((m) => ({
-      role: m.role === "assistant" ? "model" : "user",
-      parts: [{ text: m.content }],
-    }));
+  const content = response.message?.content;
+  if (content && Array.isArray(content) && content.length > 0) {
+    const textItem = content.find((item) => "text" in item);
+    if (textItem && "text" in textItem) {
+      return textItem.text || "I apologize, I couldn't generate a response. Please try again.";
+    }
+  }
 
-  // The last message is the current user input
-  const lastMessage = geminiHistory.pop();
-  if (!lastMessage) throw new Error("No messages to send");
-
-  const chat = model.startChat({ history: geminiHistory });
-  const result = await chat.sendMessage(lastMessage.parts[0].text);
-  const response = result.response.text();
-
-  return response || "I apologize, I couldn't generate a response. Please try again.";
+  return "I apologize, I couldn't generate a response. Please try again.";
 }
 
-// ============ GEMINI FALLBACK - Streaming ============
-async function streamGeminiCompletion(
+// ============ COHERE FALLBACK - Streaming ============
+async function streamCohereCompletion(
   messages: ChatMessage[],
   onChunk: (chunk: string) => void,
   onDone: () => void,
   onError: (error: Error) => void
 ): Promise<void> {
-  const model = gemini.getGenerativeModel({
-    model: "gemini-2.0-flash",
-    systemInstruction: ZENO_SYSTEM_PROMPT,
-    generationConfig: {
-      temperature: 0.7,
-      maxOutputTokens: 4096,
-    },
+  const cohereMessages = messages.map((m) => ({
+    role: m.role === "assistant" ? ("assistant" as const) : ("user" as const),
+    content: m.content,
+  }));
+
+  const stream = await cohere.chatStream({
+    model: "command-r-plus",
+    messages: [
+      { role: "system", content: ZENO_SYSTEM_PROMPT },
+      ...cohereMessages,
+    ],
+    temperature: 0.7,
+    maxTokens: 4096,
   });
 
-  const geminiHistory = messages
-    .filter((m) => m.role !== "system")
-    .map((m) => ({
-      role: m.role === "assistant" ? "model" : "user",
-      parts: [{ text: m.content }],
-    }));
-
-  const lastMessage = geminiHistory.pop();
-  if (!lastMessage) throw new Error("No messages to send");
-
-  const chat = model.startChat({ history: geminiHistory });
-  const result = await chat.sendMessageStream(lastMessage.parts[0].text);
-
-  for await (const chunk of result.stream) {
-    const text = chunk.text();
-    if (text) {
-      onChunk(text);
+  for await (const event of stream) {
+    if (event.type === "content-delta" && event.delta?.message?.content?.text) {
+      onChunk(event.delta.message.content.text);
     }
   }
 
@@ -122,11 +129,11 @@ export async function getChatCompletion(
 ): Promise<string> {
   const { temperature = 0.7, maxTokens = 4096 } = options || {};
 
-  // --- Try OpenAI first ---
+  // --- Try Groq first ---
   try {
-    console.log("🤖 Trying OpenAI...");
-    const response = await openai.chat.completions.create({
-      model: "gpt-4o-mini",
+    console.log("🤖 Trying Groq...");
+    const response = await groq.chat.completions.create({
+      model: "llama-3.3-70b-versatile",
       messages: [
         { role: "system", content: ZENO_SYSTEM_PROMPT },
         ...messages.map((m) => ({
@@ -136,28 +143,26 @@ export async function getChatCompletion(
       ],
       temperature,
       max_tokens: maxTokens,
-      presence_penalty: 0.1,
-      frequency_penalty: 0.1,
     });
 
-    console.log("✅ OpenAI responded successfully");
+    console.log("✅ Groq responded successfully");
     return response.choices[0]?.message?.content || "I apologize, I couldn't generate a response. Please try again.";
-  } catch (openaiError: unknown) {
-    const err = openaiError as { status?: number; message?: string };
-    console.error("❌ OpenAI failed:", err.message);
+  } catch (groqError: unknown) {
+    const err = groqError as { status?: number; message?: string };
+    console.error("❌ Groq failed:", err.message);
 
-    // --- Fallback to Gemini ---
+    // --- Fallback to Cohere ---
     try {
-      console.log("🔄 Falling back to Gemini...");
-      const geminiResponse = await getGeminiCompletion(messages, { temperature, maxTokens });
-      console.log("✅ Gemini responded successfully (fallback)");
-      return geminiResponse;
-    } catch (geminiError: unknown) {
-      const gErr = geminiError as { message?: string };
-      console.error("❌ Gemini also failed:", gErr.message);
+      console.log("🔄 Falling back to Cohere...");
+      const cohereResponse = await getCohereCompletion(messages, { temperature, maxTokens });
+      console.log("✅ Cohere responded successfully (fallback)");
+      return cohereResponse;
+    } catch (cohereError: unknown) {
+      const cErr = cohereError as { message?: string };
+      console.error("❌ Cohere also failed:", cErr.message);
 
       // --- Both failed ---
-      const errorMsg = `Both AI providers failed.\nOpenAI error: ${err.message}\nGemini error: ${gErr.message}`;
+      const errorMsg = `Both AI providers failed.\nGroq error: ${err.message}\nCohere error: ${cErr.message}`;
       console.error("🚨 CRITICAL:", errorMsg);
       throw new Error("All AI services are currently unavailable. Please try again later.");
     }
@@ -171,11 +176,11 @@ export async function streamChatCompletion(
   onDone: () => void,
   onError: (error: Error) => void
 ): Promise<void> {
-  // --- Try OpenAI first ---
+  // --- Try Groq first ---
   try {
-    console.log("🤖 Trying OpenAI stream...");
-    const stream = await openai.chat.completions.create({
-      model: "gpt-4o-mini",
+    console.log("🤖 Trying Groq stream...");
+    const stream = await groq.chat.completions.create({
+      model: "llama-3.3-70b-versatile",
       messages: [
         { role: "system", content: ZENO_SYSTEM_PROMPT },
         ...messages.map((m) => ({
@@ -195,29 +200,29 @@ export async function streamChatCompletion(
       }
     }
 
-    console.log("✅ OpenAI stream completed successfully");
+    console.log("✅ Groq stream completed successfully");
     onDone();
-  } catch (openaiError: unknown) {
-    const err = openaiError as { message?: string };
-    console.error("❌ OpenAI stream failed:", err.message);
+  } catch (groqError: unknown) {
+    const err = groqError as { message?: string };
+    console.error("❌ Groq stream failed:", err.message);
 
-    // --- Fallback to Gemini stream ---
+    // --- Fallback to Cohere stream ---
     try {
-      console.log("🔄 Falling back to Gemini stream...");
-      await streamGeminiCompletion(messages, onChunk, () => {
-        console.log("✅ Gemini stream completed successfully (fallback)");
+      console.log("🔄 Falling back to Cohere stream...");
+      await streamCohereCompletion(messages, onChunk, () => {
+        console.log("✅ Cohere stream completed successfully (fallback)");
         onDone();
       }, onError);
-    } catch (geminiError: unknown) {
-      const gErr = geminiError as { message?: string };
-      console.error("❌ Gemini stream also failed:", gErr.message);
+    } catch (cohereError: unknown) {
+      const cErr = cohereError as { message?: string };
+      console.error("❌ Cohere stream also failed:", cErr.message);
 
       // --- Both failed ---
-      const errorMsg = `Both AI providers failed.\nOpenAI error: ${err.message}\nGemini error: ${gErr.message}`;
+      const errorMsg = `Both AI providers failed.\nGroq error: ${err.message}\nCohere error: ${cErr.message}`;
       console.error("🚨 CRITICAL:", errorMsg);
       onError(new Error("All AI services are currently unavailable. Please try again later."));
     }
   }
 }
 
-export default openai;
+export { groq as default };

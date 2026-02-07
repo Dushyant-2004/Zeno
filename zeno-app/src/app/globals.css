@@ -172,25 +172,268 @@ html {
   border: 1px solid rgba(255,255,255,0.08);
 }
 
-/* ===== PROSE OVERRIDES ===== */
-.prose pre {
+/* ===== ZENO MARKDOWN STYLES ===== */
+.zeno-markdown {
+  color: #e2e8f0;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  font-size: 14.5px;
+  line-height: 1.9;
+}
+
+/* === First child no top margin === */
+.zeno-markdown > *:first-child {
+  margin-top: 0 !important;
+}
+
+/* ======= HEADINGS ======= */
+.zeno-markdown h1,
+.zeno-markdown h2,
+.zeno-markdown h3,
+.zeno-markdown h4,
+.zeno-markdown h5,
+.zeno-markdown h6 {
+  color: #f1f5f9;
+  font-weight: 800;
+  margin-top: 1.6em;
+  margin-bottom: 0.7em;
+  line-height: 1.35;
+  letter-spacing: 0.02em;
+}
+
+.zeno-markdown h1 {
+  font-size: 1.55em;
+  font-weight: 900;
+  background: linear-gradient(135deg, #00f0ff, #bf5af2);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  padding-bottom: 0.4em;
+  border-bottom: 2px solid rgba(0,240,255,0.15);
+  margin-bottom: 0.8em;
+}
+
+.zeno-markdown h2 {
+  font-size: 1.35em;
+  color: #00f0ff;
+  padding-bottom: 0.3em;
+  border-bottom: 1px solid rgba(0,240,255,0.08);
+}
+
+.zeno-markdown h3 {
+  font-size: 1.18em;
+  color: #bf5af2;
+}
+
+.zeno-markdown h4,
+.zeno-markdown h5,
+.zeno-markdown h6 {
+  font-size: 1.05em;
+  color: #a5b4fc;
+}
+
+/* ======= PARAGRAPHS (visible breaks) ======= */
+.zeno-markdown p {
+  margin-top: 0.85em;
+  margin-bottom: 0.85em;
+  line-height: 1.9;
+  color: #d1d5db;
+}
+
+.zeno-markdown p + p {
+  margin-top: 1em;
+}
+
+/* ======= BOLD / STRONG — bright + underline accent ======= */
+.zeno-markdown strong {
+  color: #ffffff;
+  font-weight: 700;
+  text-decoration: underline;
+  text-decoration-color: rgba(0,240,255,0.35);
+  text-underline-offset: 3px;
+  text-decoration-thickness: 2px;
+}
+
+/* ======= ITALIC / EM ======= */
+.zeno-markdown em {
+  color: #c4b5fd;
+  font-style: italic;
+}
+
+/* ======= BOLD + ITALIC ======= */
+.zeno-markdown strong em,
+.zeno-markdown em strong {
+  color: #00f0ff;
+  text-decoration: underline;
+  text-decoration-color: rgba(191,90,242,0.4);
+  text-underline-offset: 3px;
+}
+
+/* ======= LISTS ======= */
+.zeno-markdown ul,
+.zeno-markdown ol {
+  margin-top: 0.7em;
+  margin-bottom: 0.7em;
+  padding-left: 1.6em;
+}
+
+.zeno-markdown ul {
+  list-style-type: disc;
+}
+
+.zeno-markdown ol {
+  list-style-type: decimal;
+}
+
+.zeno-markdown li {
+  color: #cbd5e1;
+  margin-top: 0.4em;
+  margin-bottom: 0.4em;
+  line-height: 1.8;
+  padding-left: 0.4em;
+}
+
+.zeno-markdown li::marker {
+  color: #00f0ff;
+}
+
+.zeno-markdown ol li::marker {
+  color: #bf5af2;
+  font-weight: 700;
+}
+
+/* Nested lists */
+.zeno-markdown ul ul,
+.zeno-markdown ol ol,
+.zeno-markdown ul ol,
+.zeno-markdown ol ul {
+  margin-top: 0.3em;
+  margin-bottom: 0.3em;
+}
+
+/* ======= PARAGRAPH → LIST gap ======= */
+.zeno-markdown p + ul,
+.zeno-markdown p + ol {
+  margin-top: 0.4em;
+}
+
+.zeno-markdown ul + p,
+.zeno-markdown ol + p {
+  margin-top: 1em;
+}
+
+/* ======= CODE BLOCKS ======= */
+.zeno-markdown pre {
   overflow-x: auto;
-  background: rgba(0,0,0,0.5) !important;
-  border: 1px solid rgba(0,240,255,0.1) !important;
-  border-radius: 12px !important;
+  background: rgba(0,0,0,0.55) !important;
+  border: 1px solid rgba(0,240,255,0.12);
+  border-radius: 12px;
+  padding: 1.1em 1.3em;
+  margin-top: 1em;
+  margin-bottom: 1em;
+  font-size: 0.88em;
+  line-height: 1.65;
+  box-shadow: 0 4px 24px rgba(0,0,0,0.3);
 }
 
-.prose code::before,
-.prose code::after {
-  content: none !important;
+.zeno-markdown code {
+  color: #00f0ff;
+  background: rgba(0,240,255,0.08);
+  padding: 2px 7px;
+  border-radius: 5px;
+  font-size: 0.88em;
+  font-family: 'Fira Code', 'Cascadia Code', 'JetBrains Mono', monospace;
 }
 
-.prose code {
-  color: #00f0ff !important;
-  background: rgba(0,240,255,0.08) !important;
-  padding: 2px 6px !important;
-  border-radius: 4px !important;
-  font-size: 0.85em !important;
+.zeno-markdown pre code {
+  color: #e2e8f0;
+  background: transparent;
+  padding: 0;
+  border-radius: 0;
+  font-size: 1em;
+}
+
+/* ======= BLOCKQUOTES ======= */
+.zeno-markdown blockquote {
+  border-left: 3px solid rgba(191,90,242,0.5);
+  margin: 1em 0;
+  color: #a5b4fc;
+  font-style: italic;
+  background: rgba(191,90,242,0.04);
+  border-radius: 0 10px 10px 0;
+  padding: 0.7em 1.1em;
+}
+
+.zeno-markdown blockquote p {
+  margin: 0.3em 0;
+}
+
+/* ======= HORIZONTAL RULE ======= */
+.zeno-markdown hr {
+  border: none;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(0,240,255,0.3), rgba(191,90,242,0.3), transparent);
+  margin: 1.5em 0;
+}
+
+/* ======= LINKS ======= */
+.zeno-markdown a {
+  color: #00f0ff;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  text-decoration-color: rgba(0,240,255,0.4);
+  transition: all 0.2s;
+}
+
+.zeno-markdown a:hover {
+  color: #bf5af2;
+  text-decoration-color: rgba(191,90,242,0.5);
+}
+
+/* ======= TABLES ======= */
+.zeno-markdown table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 1em 0;
+  font-size: 0.92em;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.zeno-markdown th {
+  background: rgba(0,240,255,0.08);
+  color: #00f0ff;
+  font-weight: 700;
+  padding: 0.65em 0.9em;
+  border: 1px solid rgba(255,255,255,0.08);
+  text-align: left;
+}
+
+.zeno-markdown td {
+  padding: 0.55em 0.9em;
+  border: 1px solid rgba(255,255,255,0.06);
+  color: #cbd5e1;
+}
+
+.zeno-markdown tr:nth-child(even) {
+  background: rgba(255,255,255,0.02);
+}
+
+/* ======= HEADING → CONTENT spacing ======= */
+.zeno-markdown h1 + p,
+.zeno-markdown h2 + p,
+.zeno-markdown h3 + p,
+.zeno-markdown h4 + p {
+  margin-top: 0.4em;
+}
+
+.zeno-markdown h1 + ul,
+.zeno-markdown h1 + ol,
+.zeno-markdown h2 + ul,
+.zeno-markdown h2 + ol,
+.zeno-markdown h3 + ul,
+.zeno-markdown h3 + ol {
+  margin-top: 0.4em;
 }
 
 /* ===== LINE CLAMP ===== */

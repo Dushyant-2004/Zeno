@@ -130,12 +130,50 @@ export function useVoiceCommand(): UseVoiceCommandReturn {
         .replace(/\n/g, " ")
         .trim();
 
-      const utterance = new SpeechSynthesisUtterance(cleanText);
-      utterance.rate = 1;
-      utterance.pitch = 1;
-      utterance.volume = 1;
+      // Split text into small chunks to prevent Chrome TTS freeze/lag
+      // Chrome's SpeechSynthesis hangs on text longer than ~200 chars
+      const splitIntoChunks = (str: string, maxLen: number = 160): string[] => {
+        const chunks: string[] = [];
+        let remaining = str;
 
-      // Try to use a good voice
+        while (remaining.length > 0) {
+          if (remaining.length <= maxLen) {
+            chunks.push(remaining);
+            break;
+          }
+
+          // Try to split at sentence boundary
+          let splitAt = -1;
+          const sentenceEnders = ['. ', '! ', '? ', '.\n', '!\n', '?\n'];
+          for (const ender of sentenceEnders) {
+            const idx = remaining.lastIndexOf(ender, maxLen);
+            if (idx > 0 && idx > splitAt) {
+              splitAt = idx + ender.length;
+            }
+          }
+
+          // Fallback: split at comma or space
+          if (splitAt <= 0) {
+            splitAt = remaining.lastIndexOf(', ', maxLen);
+            if (splitAt > 0) splitAt += 2;
+          }
+          if (splitAt <= 0) {
+            splitAt = remaining.lastIndexOf(' ', maxLen);
+          }
+          if (splitAt <= 0) {
+            splitAt = maxLen;
+          }
+
+          chunks.push(remaining.substring(0, splitAt).trim());
+          remaining = remaining.substring(splitAt).trim();
+        }
+        return chunks.filter(c => c.length > 0);
+      };
+
+      const chunks = splitIntoChunks(cleanText);
+      if (chunks.length === 0) return;
+
+      // Get a good voice
       const voices = synthRef.current.getVoices();
       const preferredVoice = voices.find(
         (v) =>
@@ -143,15 +181,33 @@ export function useVoiceCommand(): UseVoiceCommandReturn {
           v.name.includes("Microsoft David") ||
           v.name.includes("Samantha")
       );
-      if (preferredVoice) {
-        utterance.voice = preferredVoice;
-      }
 
-      utterance.onstart = () => setIsSpeaking(true);
-      utterance.onend = () => setIsSpeaking(false);
-      utterance.onerror = () => setIsSpeaking(false);
+      setIsSpeaking(true);
 
-      synthRef.current.speak(utterance);
+      const speakChunk = (index: number) => {
+        if (!synthRef.current || index >= chunks.length) {
+          setIsSpeaking(false);
+          return;
+        }
+
+        const utterance = new SpeechSynthesisUtterance(chunks[index]);
+        utterance.rate = 1;
+        utterance.pitch = 1;
+        utterance.volume = 1;
+        if (preferredVoice) utterance.voice = preferredVoice;
+
+        utterance.onend = () => {
+          speakChunk(index + 1);
+        };
+
+        utterance.onerror = () => {
+          setIsSpeaking(false);
+        };
+
+        synthRef.current!.speak(utterance);
+      };
+
+      speakChunk(0);
     }
   }, []);
 
