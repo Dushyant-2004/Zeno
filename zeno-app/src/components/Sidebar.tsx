@@ -1,6 +1,7 @@
 "use client";
 
 import { motion, AnimatePresence } from "framer-motion";
+import { useSession, signOut } from "next-auth/react";
 import { Conversation } from "@/hooks/useZenoChat";
 import {
   FiPlus,
@@ -9,6 +10,7 @@ import {
   FiX,
   FiClock,
   FiZap,
+  FiLogOut,
 } from "react-icons/fi";
 import { formatDistanceToNow } from "date-fns";
 
@@ -31,6 +33,8 @@ export default function Sidebar({
   onSelectConversation,
   onDeleteConversation,
 }: SidebarProps) {
+  const { data: session } = useSession();
+
   return (
     <>
       {/* Backdrop */}
@@ -268,12 +272,58 @@ export default function Sidebar({
           </AnimatePresence>
         </div>
 
-        {/* Footer */}
+        {/* Footer with User Profile */}
         <div
-          className="p-4 text-center"
+          className="p-4"
           style={{ borderTop: "1px solid rgba(255,255,255,0.03)" }}
         >
-          <p className="text-[9px] tracking-widest uppercase" style={{ color: "rgba(255,255,255,0.12)" }}>
+          {session?.user && (
+            <div className="flex items-center gap-3 mb-3">
+              {session.user.image ? (
+                <img
+                  src={session.user.image}
+                  alt={session.user.name || "User"}
+                  className="w-8 h-8 rounded-full"
+                  style={{ border: "1px solid rgba(0,240,255,0.15)" }}
+                  referrerPolicy="no-referrer"
+                />
+              ) : (
+                <div
+                  className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold"
+                  style={{
+                    background: "linear-gradient(135deg, rgba(0,240,255,0.12), rgba(191,90,242,0.12))",
+                    border: "1px solid rgba(0,240,255,0.15)",
+                    color: "rgba(0,240,255,0.7)",
+                  }}
+                >
+                  {session.user.name?.charAt(0).toUpperCase() || "U"}
+                </div>
+              )}
+              <div className="flex-1 min-w-0">
+                <p className="text-xs text-gray-300 truncate">{session.user.name}</p>
+                <p className="text-[9px] text-gray-600 truncate">{session.user.email}</p>
+              </div>
+              <motion.button
+                whileHover={{ scale: 1.1 }}
+                whileTap={{ scale: 0.9 }}
+                onClick={() => signOut()}
+                className="p-1.5 rounded-lg transition-colors"
+                style={{ color: "rgba(255,255,255,0.2)" }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.color = "rgba(255,55,95,0.7)";
+                  e.currentTarget.style.background = "rgba(255,55,95,0.06)";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.color = "rgba(255,255,255,0.2)";
+                  e.currentTarget.style.background = "transparent";
+                }}
+                title="Sign out"
+              >
+                <FiLogOut size={14} />
+              </motion.button>
+            </div>
+          )}
+          <p className="text-[9px] tracking-widest uppercase text-center" style={{ color: "rgba(255,255,255,0.12)" }}>
             ZENO v1.0
           </p>
         </div>

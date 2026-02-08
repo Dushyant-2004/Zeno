@@ -1,13 +1,20 @@
 import { NextRequest, NextResponse } from "next/server";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 import { connectToDatabase } from "@/lib/mongodb";
 import Conversation from "@/lib/models/Conversation";
 
-// GET - List all conversations
+// GET - List all conversations for the authenticated user
 export async function GET() {
   try {
+    const session = await getServerSession(authOptions);
+    const userEmail = session?.user?.email;
+
     await connectToDatabase();
 
-    const conversations = await Conversation.find({})
+    const filter = userEmail ? { userEmail } : {};
+
+    const conversations = await Conversation.find(filter)
       .select("sessionId title createdAt updatedAt messages")
       .sort({ updatedAt: -1 })
       .limit(50)

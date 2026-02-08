@@ -1,4 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 import { connectToDatabase } from "@/lib/mongodb";
 import Conversation from "@/lib/models/Conversation";
 import { getChatCompletion, ChatMessage } from "@/lib/openai";
@@ -28,6 +30,9 @@ export async function POST(req: NextRequest) {
 
     await connectToDatabase();
 
+    const session = await getServerSession(authOptions);
+    const userEmail = session?.user?.email;
+
     const currentSessionId = sessionId || uuidv4();
 
     // Find or create conversation
@@ -36,6 +41,7 @@ export async function POST(req: NextRequest) {
     if (!conversation) {
       conversation = new Conversation({
         sessionId: currentSessionId,
+        userEmail: userEmail || undefined,
         title: message.substring(0, 60) + (message.length > 60 ? "..." : ""),
         messages: [],
       });

@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { useSession } from "next-auth/react";
 import { useZenoChat } from "@/hooks/useZenoChat";
 import { useVoiceCommand } from "@/hooks/useVoiceCommand";
 import ParticleBackground from "@/components/ParticleBackground";
@@ -10,6 +11,7 @@ import ChatInput from "@/components/ChatInput";
 import WelcomeScreen from "@/components/WelcomeScreen";
 import Sidebar from "@/components/Sidebar";
 import SplashScreen from "@/components/SplashScreen";
+import LoginScreen from "@/components/LoginScreen";
 import {
   FiMenu,
   FiPlus,
@@ -21,6 +23,8 @@ import {
 import toast from "react-hot-toast";
 
 export default function Home() {
+  const { data: session, status } = useSession();
+
   const {
     messages,
     isLoading,
@@ -109,6 +113,9 @@ export default function Home() {
     <div className="relative min-h-screen flex flex-col overflow-hidden">
       {/* Splash Screen */}
       {showSplash && <SplashScreen onComplete={() => setShowSplash(false)} />}
+
+      {/* Login Screen - shows after splash if not authenticated */}
+      {!showSplash && status !== "loading" && !session && <LoginScreen />}
 
       {/* Animated background */}
       <ParticleBackground />

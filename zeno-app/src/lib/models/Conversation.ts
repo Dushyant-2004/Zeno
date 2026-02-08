@@ -9,6 +9,7 @@ export interface IMessage {
 
 export interface IConversation extends Document {
   sessionId: string;
+  userEmail?: string;
   title: string;
   messages: IMessage[];
   createdAt: Date;
@@ -25,6 +26,7 @@ const MessageSchema = new Schema<IMessage>({
 const ConversationSchema = new Schema<IConversation>(
   {
     sessionId: { type: String, required: true, index: true, unique: true },
+    userEmail: { type: String, index: true },
     title: { type: String, default: "New Conversation" },
     messages: [MessageSchema],
   },
