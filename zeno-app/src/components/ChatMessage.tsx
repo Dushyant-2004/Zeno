@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import ReactMarkdown from "react-markdown";
 import { Message } from "@/hooks/useZenoChat";
-import { FiUser, FiVolume2, FiCopy, FiCheck, FiMic } from "react-icons/fi";
+import { FiUser, FiVolume2, FiCopy, FiCheck, FiMic, FiDownload, FiImage } from "react-icons/fi";
 
 interface ChatMessageProps {
   message: Message;
@@ -16,6 +16,8 @@ export default function ChatMessage({ message, onSpeak, isSpeaking }: ChatMessag
   const isUser = message.role === "user";
   const [copied, setCopied] = useState(false);
   const [hovered, setHovered] = useState(false);
+  const [imageLoaded, setImageLoaded] = useState(false);
+  const [imageError, setImageError] = useState(false);
   const messageRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -123,8 +125,143 @@ export default function ChatMessage({ message, onSpeak, isSpeaking }: ChatMessag
           <div className="text-[14.5px] leading-[1.8] tracking-wide">
             {isUser ? (
               <p className="text-gray-100 whitespace-pre-wrap">{message.content}</p>
+            ) : message.isImageLoading ? (
+              /* Image loading state */
+              <div className="flex flex-col items-center gap-3 py-4">
+                <motion.div
+                  className="w-12 h-12 rounded-xl flex items-center justify-center"
+                  style={{
+                    background: "linear-gradient(135deg, rgba(0,240,255,0.1), rgba(191,90,242,0.1))",
+                    border: "1px solid rgba(0,240,255,0.15)",
+                  }}
+                  animate={{
+                    boxShadow: [
+                      "0 0 10px rgba(0,240,255,0.1)",
+                      "0 0 25px rgba(191,90,242,0.2)",
+                      "0 0 10px rgba(0,240,255,0.1)",
+                    ],
+                  }}
+                  transition={{ duration: 1.5, repeat: Infinity }}
+                >
+                  <motion.div
+                    animate={{ rotate: 360 }}
+                    transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
+                  >
+                    <FiImage size={20} className="text-cyan-400" />
+                  </motion.div>
+                </motion.div>
+                <p className="text-xs text-gray-500">Generating your image...</p>
+                <div className="flex gap-1">
+                  {[0, 1, 2].map((i) => (
+                    <motion.div
+                      key={i}
+                      className="w-1.5 h-1.5 rounded-full bg-cyan-500"
+                      animate={{ opacity: [0.3, 1, 0.3] }}
+                      transition={{ duration: 0.8, repeat: Infinity, delay: i * 0.2 }}
+                    />
+                  ))}
+                </div>
+              </div>
             ) : (
               <div className="zeno-markdown">
+                {/* Render image if present */}
+                {message.imageUrl && (
+                  <motion.div
+                    initial={{ opacity: 0, scale: 0.95 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    transition={{ duration: 0.5 }}
+                    className="mb-3 relative group"
+                  >
+                    <div
+                      className="relative rounded-xl overflow-hidden"
+                      style={{
+                        border: "1px solid rgba(0,240,255,0.1)",
+                        boxShadow: "0 4px 20px rgba(0,0,0,0.3)",
+                      }}
+                    >
+                      {/* Image loading placeholder */}
+                      {!imageLoaded && !imageError && (
+                        <div
+                          className="w-full flex items-center justify-center"
+                          style={{
+                            height: "300px",
+                            background: "rgba(255,255,255,0.02)",
+                          }}
+                        >
+                          <motion.div
+                            animate={{ rotate: 360 }}
+                            transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
+                          >
+                            <FiImage size={28} className="text-gray-600" />
+                          </motion.div>
+                        </div>
+                      )}
+
+                      {/* Image error state */}
+                      {imageError && (
+                        <div
+                          className="w-full flex flex-col items-center justify-center gap-2 py-8"
+                          style={{
+                            background: "rgba(255,55,95,0.04)",
+                          }}
+                        >
+                          <FiImage size={28} className="text-red-400/50" />
+                          <p className="text-xs text-red-400/60">Failed to load image</p>
+                          <button
+                            onClick={() => {
+                              setImageError(false);
+                              setImageLoaded(false);
+                            }}
+                            className="text-xs text-cyan-400 hover:underline mt-1"
+                          >
+                            Retry
+                          </button>
+                        </div>
+                      )}
+
+                      {/* Actual image */}
+                      {!imageError && (
+                        <img
+                          src={message.imageUrl}
+                          alt={`AI Generated: ${message.content.substring(0, 100)}`}
+                          className={`w-full max-w-[512px] rounded-xl transition-opacity duration-500 ${
+                            imageLoaded ? "opacity-100" : "opacity-0 absolute"
+                          }`}
+                          onLoad={() => setImageLoaded(true)}
+                          onError={() => setImageError(true)}
+                          loading="lazy"
+                        />
+                      )}
+
+                      {/* Image overlay actions */}
+                      {imageLoaded && (
+                        <motion.div
+                          initial={{ opacity: 0 }}
+                          animate={{ opacity: hovered ? 1 : 0 }}
+                          className="absolute bottom-2 right-2 flex gap-1.5"
+                        >
+                          <a
+                            href={message.imageUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            download
+                            className="p-2 rounded-lg text-white/80 hover:text-white transition-colors"
+                            style={{
+                              background: "rgba(0,0,0,0.6)",
+                              backdropFilter: "blur(10px)",
+                            }}
+                            title="Download image"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            <FiDownload size={14} />
+                          </a>
+                        </motion.div>
+                      )}
+                    </div>
+                  </motion.div>
+                )}
+
+                {/* Render markdown text content (below image, or alone if no image) */}
                 <ReactMarkdown>{message.content}</ReactMarkdown>
                 {message.isStreaming && (
                   <motion.span

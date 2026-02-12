@@ -15,6 +15,20 @@ interface UseVoiceCommandReturn {
   stopSpeaking: () => void;
 }
 
+// Errors that are expected/benign and should never surface to the user
+const SILENT_ERRORS = new Set([
+  "no-speech",    // Mic opened but user didn't speak — completely normal
+  "aborted",      // Recognition was intentionally stopped by code
+]);
+
+// Errors that are recoverable and worth a retry
+const RETRYABLE_ERRORS = new Set([
+  "no-speech",
+  "network",
+]);
+
+const MAX_RETRIES = 2;
+
 export function useVoiceCommand(): UseVoiceCommandReturn {
   const [isListening, setIsListening] = useState(false);
   const [transcript, setTranscript] = useState("");
@@ -24,59 +38,107 @@ export function useVoiceCommand(): UseVoiceCommandReturn {
 
   const recognitionRef = useRef<SpeechRecognition | null>(null);
   const synthRef = useRef<SpeechSynthesis | null>(null);
+  const retryCountRef = useRef(0);
+  const intentionalStopRef = useRef(false);
+
+  const safeStartRecognition = useCallback(() => {
+    const recognition = recognitionRef.current;
+    if (!recognition) return false;
+    try {
+      recognition.start();
+      return true;
+    } catch {
+      // Already started or other DOM exception — not a real failure
+      return false;
+    }
+  }, []);
 
   useEffect(() => {
-    if (typeof window !== "undefined") {
-      const SpeechRecognition =
-        window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (typeof window === "undefined") return;
 
-      if (SpeechRecognition) {
-        setIsSupported(true);
-        const recognition = new SpeechRecognition();
-        recognition.continuous = false;
-        recognition.interimResults = true;
-        recognition.lang = "en-US";
-        recognition.maxAlternatives = 1;
+    const SpeechRecognitionAPI =
+      window.SpeechRecognition || window.webkitSpeechRecognition;
 
-        recognition.onstart = () => {
-          setIsListening(true);
-          setError(null);
-        };
+    if (!SpeechRecognitionAPI) {
+      setIsSupported(false);
+      return;
+    }
 
-        recognition.onresult = (event: SpeechRecognitionEvent) => {
-          let finalTranscript = "";
-          for (let i = event.resultIndex; i < event.results.length; i++) {
-            const result = event.results[i];
-            if (result.isFinal) {
-              finalTranscript += result[0].transcript;
+    setIsSupported(true);
+    const recognition = new SpeechRecognitionAPI();
+    recognition.continuous = false;
+    recognition.interimResults = true;
+    recognition.lang = "en-US";
+    recognition.maxAlternatives = 1;
+
+    recognition.onstart = () => {
+      setIsListening(true);
+      setError(null);
+    };
+
+    recognition.onresult = (event: SpeechRecognitionEvent) => {
+      let finalTranscript = "";
+      for (let i = event.resultIndex; i < event.results.length; i++) {
+        const result = event.results[i];
+        if (result.isFinal) {
+          finalTranscript += result[0].transcript;
+        }
+      }
+      if (finalTranscript) {
+        // Got valid speech — reset retry counter
+        retryCountRef.current = 0;
+        setTranscript(finalTranscript);
+      }
+    };
+
+    recognition.onerror = (event: SpeechRecognitionErrorEvent) => {
+      const errorType = event.error;
+
+      // Silently ignore benign errors — do NOT use console.error
+      // (Next.js dev overlay treats console.error as user-facing errors)
+      if (SILENT_ERRORS.has(errorType)) {
+        // Auto-retry for no-speech: user may not have started talking yet
+        if (RETRYABLE_ERRORS.has(errorType) && retryCountRef.current < MAX_RETRIES && !intentionalStopRef.current) {
+          retryCountRef.current += 1;
+          // Small delay before retry to avoid rapid-fire restarts
+          setTimeout(() => {
+            if (!intentionalStopRef.current) {
+              safeStartRecognition();
             }
-          }
-          if (finalTranscript) {
-            setTranscript(finalTranscript);
-          }
-        };
-
-        recognition.onerror = (event: SpeechRecognitionErrorEvent) => {
-          console.error("Speech recognition error:", event.error);
-          if (event.error !== "aborted") {
-            setError(`Voice recognition error: ${event.error}`);
-          }
-          setIsListening(false);
-        };
-
-        recognition.onend = () => {
-          setIsListening(false);
-        };
-
-        recognitionRef.current = recognition;
+          }, 300);
+          return;
+        }
+        setIsListening(false);
+        return;
       }
 
-      if (window.speechSynthesis) {
-        synthRef.current = window.speechSynthesis;
-      }
+      // For real errors: use console.warn (won't trigger Next.js overlay)
+      // and surface a user-friendly message
+      const userMessages: Record<string, string> = {
+        "not-allowed": "Microphone access denied. Please allow mic permission and try again.",
+        "audio-capture": "No microphone found. Please connect a mic and try again.",
+        "network": "Network error during voice recognition. Check your connection.",
+        "service-not-allowed": "Speech recognition service is not available in this browser.",
+      };
+
+      const friendlyMsg = userMessages[errorType] || `Voice recognition error: ${errorType}`;
+      console.warn(`[Zeno Voice] ${errorType}: ${friendlyMsg}`);
+      setError(friendlyMsg);
+      setIsListening(false);
+    };
+
+    recognition.onend = () => {
+      setIsListening(false);
+    };
+
+    recognitionRef.current = recognition;
+
+    if (window.speechSynthesis) {
+      synthRef.current = window.speechSynthesis;
     }
 
     return () => {
+      intentionalStopRef.current = true;
       if (recognitionRef.current) {
         recognitionRef.current.abort();
       }
@@ -84,23 +146,23 @@ export function useVoiceCommand(): UseVoiceCommandReturn {
         synthRef.current.cancel();
       }
     };
-  }, []);
+  }, [safeStartRecognition]);
 
   const startListening = useCallback(() => {
     if (recognitionRef.current && !isListening) {
       setTranscript("");
       setError(null);
-      try {
-        recognitionRef.current.start();
-      } catch (err) {
-        console.error("Failed to start recognition:", err);
+      retryCountRef.current = 0;
+      intentionalStopRef.current = false;
+      if (!safeStartRecognition()) {
         setError("Failed to start voice recognition. Please try again.");
       }
     }
-  }, [isListening]);
+  }, [isListening, safeStartRecognition]);
 
   const stopListening = useCallback(() => {
     if (recognitionRef.current && isListening) {
+      intentionalStopRef.current = true;
       recognitionRef.current.stop();
     }
   }, [isListening]);

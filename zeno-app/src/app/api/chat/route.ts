@@ -3,7 +3,9 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 import { connectToDatabase } from "@/lib/mongodb";
 import Conversation from "@/lib/models/Conversation";
+import UploadedFile from "@/lib/models/UploadedFile";
 import { getChatCompletion, ChatMessage } from "@/lib/openai";
+import { truncateForContext } from "@/lib/fileParser";
 import { v4 as uuidv4 } from "uuid";
 
 // Error response helper
@@ -55,13 +57,39 @@ export async function POST(req: NextRequest) {
       isVoice,
     });
 
+    // Fetch any uploaded files for this session to include as context
+    const uploadedFiles = await UploadedFile.find({
+      sessionId: currentSessionId,
+      status: "ready",
+    }).lean();
+
+    // Build file context prefix if files exist
+    let fileContextPrefix = "";
+    if (uploadedFiles.length > 0) {
+      const fileContents = uploadedFiles.map((f) => {
+        const truncated = truncateForContext(f.extractedText, 8000);
+        return `--- FILE: "${f.originalName}" (${f.mimeType}) ---\n${truncated}\n--- END FILE ---`;
+      }).join("\n\n");
+
+      fileContextPrefix = `The user has uploaded the following document(s). Use this content to answer their questions accurately. If they ask about something not in the documents, let them know.\n\n${fileContents}\n\n`;
+    }
+
     // Prepare messages for AI (last 20 messages for context)
     const contextMessages: ChatMessage[] = conversation.messages
       .slice(-20)
-      .map((m) => ({
-        role: m.role,
-        content: m.content,
-      }));
+      .map((m, i) => {
+        // Inject file context into the first user message so the AI sees it
+        if (i === 0 && fileContextPrefix && m.role === "user") {
+          return {
+            role: m.role,
+            content: fileContextPrefix + m.content,
+          };
+        }
+        return {
+          role: m.role,
+          content: m.content,
+        };
+      });
 
     // Get AI response
     const aiResponse = await getChatCompletion(contextMessages);

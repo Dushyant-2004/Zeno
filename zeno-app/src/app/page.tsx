@@ -31,12 +31,15 @@ export default function Home() {
     error,
     sessionId,
     conversations,
+    uploadedFiles,
     sendMessageStream,
     loadConversation,
     loadConversations,
     deleteConversation,
     startNewChat,
     clearError,
+    addUploadedFile,
+    removeUploadedFile,
   } = useZenoChat();
 
   const {
@@ -392,6 +395,10 @@ export default function Home() {
             isSupported={isSupported}
             transcript={transcript}
             onToggleVoice={toggleListening}
+            sessionId={sessionId}
+            uploadedFiles={uploadedFiles}
+            onFileUploaded={addUploadedFile}
+            onFileRemoved={removeUploadedFile}
           />
         </div>
       </div>

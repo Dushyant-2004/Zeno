@@ -2,7 +2,8 @@
 
 import { useState, useRef, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { FiSend, FiMic, FiSquare } from "react-icons/fi";
+import { FiSend, FiMic, FiSquare, FiPaperclip } from "react-icons/fi";
+import FileUpload, { UploadedFileInfo } from "@/components/FileUpload";
 
 interface ChatInputProps {
   onSend: (message: string, isVoice?: boolean) => void;
@@ -11,6 +12,10 @@ interface ChatInputProps {
   isSupported: boolean;
   transcript: string;
   onToggleVoice: () => void;
+  sessionId: string;
+  uploadedFiles: UploadedFileInfo[];
+  onFileUploaded: (file: UploadedFileInfo) => void;
+  onFileRemoved: (fileId: string) => void;
 }
 
 export default function ChatInput({
@@ -20,9 +25,14 @@ export default function ChatInput({
   isSupported,
   transcript,
   onToggleVoice,
+  sessionId,
+  uploadedFiles,
+  onFileUploaded,
+  onFileRemoved,
 }: ChatInputProps) {
   const [input, setInput] = useState("");
   const [focused, setFocused] = useState(false);
+  const [showUpload, setShowUpload] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   // Handle transcript from voice
@@ -174,6 +184,49 @@ export default function ChatInput({
             </motion.button>
           )}
 
+          {/* File attach button */}
+          <motion.button
+            whileHover={{ scale: 1.08 }}
+            whileTap={{ scale: 0.92 }}
+            onClick={() => setShowUpload(!showUpload)}
+            className="flex-shrink-0 relative p-3 rounded-xl transition-all duration-300"
+            style={
+              showUpload || uploadedFiles.length > 0
+                ? {
+                    background: "rgba(0,240,255,0.06)",
+                    border: "1px solid rgba(0,240,255,0.12)",
+                  }
+                : {
+                    background: "transparent",
+                    border: "1px solid transparent",
+                  }
+            }
+            title="Attach a file (PDF, TXT, CSV, MD)"
+          >
+            <FiPaperclip
+              size={18}
+              className={`transition-colors ${
+                showUpload || uploadedFiles.length > 0
+                  ? "text-cyan-400"
+                  : "text-gray-500 hover:text-cyan-400"
+              }`}
+            />
+            {/* File count badge */}
+            {uploadedFiles.length > 0 && (
+              <motion.div
+                initial={{ scale: 0 }}
+                animate={{ scale: 1 }}
+                className="absolute -top-0.5 -right-0.5 w-4 h-4 rounded-full flex items-center justify-center text-[9px] font-bold"
+                style={{
+                  background: "linear-gradient(135deg, #00f0ff, #bf5af2)",
+                  color: "#000",
+                }}
+              >
+                {uploadedFiles.length}
+              </motion.div>
+            )}
+          </motion.button>
+
           {/* Text input */}
           <textarea
             ref={textareaRef}
@@ -237,6 +290,27 @@ export default function ChatInput({
           </motion.button>
         </div>
       </div>
+
+      {/* File upload panel */}
+      <AnimatePresence>
+        {(showUpload || uploadedFiles.length > 0) && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: "auto" }}
+            exit={{ opacity: 0, height: 0 }}
+            transition={{ duration: 0.2 }}
+            className="mt-2 overflow-hidden"
+          >
+            <FileUpload
+              sessionId={sessionId}
+              onFileUploaded={onFileUploaded}
+              onFileRemoved={onFileRemoved}
+              uploadedFiles={uploadedFiles}
+              disabled={isLoading}
+            />
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Bottom hints */}
       <div className="flex items-center justify-between mt-2.5 px-3">
