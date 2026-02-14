@@ -1,22 +1,34 @@
 # 🧠 ZENO - AI Assistant
 
+![Next.js](https://img.shields.io/badge/Next.js-16.1.6-black?style=for-the-badge&logo=next.js)
+![React](https://img.shields.io/badge/React-19.2.3-61DAFB?style=for-the-badge&logo=react)
+![TypeScript](https://img.shields.io/badge/TypeScript-5.0-3178C6?style=for-the-badge&logo=typescript)
+![MongoDB](https://img.shields.io/badge/MongoDB-47A248?style=for-the-badge&logo=mongodb&logoColor=white)
+![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-4.0-06B6D4?style=for-the-badge&logo=tailwindcss)
+
 **ZENO** is a powerful, intelligent AI chatbot built with Next.js, MongoDB, Groq, and Cohere. It features voice commands, real-time streaming responses, AI image generation, document analysis, beautiful animations, and a modern dark UI.
+
+---
 
 ## ✨ Features
 
-- **🔐 Google Authentication** - Sign in with Google via NextAuth.js, per-user chat history
-- **🤖 AI-Powered Chat** - Groq (Llama 3.3 70B) as primary, Cohere (Command R+) as fallback
-- **🎤 Voice Commands** - Speak to ZENO using Web Speech API
-- **🔊 Text-to-Speech** - ZENO can read responses aloud
-- **📡 Real-time Streaming** - Watch responses appear word by word
-- **🖼️ AI Image Generation** - Generate images from text prompts using Pollinations.ai (FREE, no API key)
-- **📄 File Upload & Analysis** - Upload PDF, TXT, CSV, or MD files and ask questions about their content (RAG-style)
-- **💾 Conversation History** - All chats saved in MongoDB, linked to your account
-- **🎨 Animated UI** - Framer Motion animations, particle backgrounds, neural network canvas
-- **⌨️ Typing Effects** - Beautiful typing animation on welcome screen
-- **📱 Responsive Design** - Works on desktop and mobile
-- **🌙 Dark Theme** - Sleek dark UI with glassmorphism effects
-- **📋 Markdown Support** - Code blocks, formatting, and more in responses
+| Feature | Description |
+|---------|-------------|
+| 🔐 **Google Authentication** | Sign in with Google via NextAuth.js, per-user chat history |
+| 🤖 **AI-Powered Chat** | Groq (Llama 3.3 70B) as primary, Cohere (Command R+) as fallback |
+| 🎤 **Voice Commands** | Speak to ZENO using Web Speech API |
+| 🔊 **Text-to-Speech** | ZENO can read responses aloud |
+| 📡 **Real-time Streaming** | Watch responses appear word by word |
+| 🖼️ **AI Image Generation** | Generate images from text prompts using Pollinations.ai (FREE, no API key) |
+| 📄 **File Upload & Analysis** | Upload PDF, TXT, CSV, or MD files and ask questions about their content (RAG-style) |
+| 💾 **Conversation History** | All chats saved in MongoDB, linked to your account |
+| 🎨 **Animated UI** | Framer Motion animations, particle backgrounds, neural network canvas |
+| ⌨️ **Typing Effects** | Beautiful typing animation on welcome screen |
+| 📱 **Responsive Design** | Works on desktop and mobile |
+| 🌙 **Dark Theme** | Sleek dark UI with glassmorphism effects |
+| 📋 **Markdown Support** | Code blocks, formatting, and more in responses |
+
+---
 
 ## 🛠️ Tech Stack
 
@@ -33,50 +45,48 @@
 | Voice | Web Speech API (Recognition + Synthesis) |
 | UI | react-icons, react-hot-toast, react-markdown |
 
+---
+
 ## 🚀 Getting Started
 
 ### Prerequisites
 
-- Node.js 18+
-- MongoDB (local or Atlas)
-- Groq API key
-- Cohere API key (optional fallback)
-- Google OAuth credentials (Client ID & Secret)
+- **Node.js** 18+ ([Download](https://nodejs.org/))
+- **MongoDB** (local or [Atlas](https://www.mongodb.com/atlas))
+- **Groq API key** ([Get one free](https://console.groq.com/keys))
+- **Cohere API key** (optional fallback) ([Get one](https://dashboard.cohere.com/api-keys))
+- **Google OAuth credentials** ([Setup guide](https://console.cloud.google.com/apis/credentials))
 
-### Setup
+### Installation
 
-1. **Navigate to the project:**
-   ```bash
-   cd zeno-app
-   ```
+```bash
+# 1. Clone the repository
+git clone https://github.com/Dushyant-2004/Zeno.git
+cd Zeno/zeno-app
 
-2. **Install dependencies:**
-   ```bash
-   npm install
-   ```
+# 2. Install dependencies
+npm install
 
-3. **Configure environment variables:**
-   
-   Create a `.env.local` file and add your keys:
-   ```env
-   GROQ_API_KEY=your_groq_api_key_here
-   COHERE_API_KEY=your_cohere_api_key_here
-   MONGODB_URI=mongodb://localhost:27017/zeno
-   GOOGLE_CLIENT_ID=your_google_client_id
-   GOOGLE_CLIENT_SECRET=your_google_client_secret
-   NEXTAUTH_SECRET=your_random_secret_string
-   NEXTAUTH_URL=http://localhost:3000
-   ```
+# 3. Configure environment variables
+# Create .env.local file (see Environment Variables section above)
 
-4. **Start development server:**
-   ```bash
-   npm run dev
-   ```
+# 4. Start development server
+npm run dev
 
-5. **Open in browser:**
-   ```
-   http://localhost:3000
-   ```
+# 5. Open in browser
+# http://localhost:3000
+```
+
+### Available Scripts
+
+| Command | Description |
+|---------|-------------|
+| `npm run dev` | Start development server |
+| `npm run build` | Build for production |
+| `npm run start` | Start production server |
+| `npm run lint` | Run ESLint |
+
+---
 
 ## 📁 Project Structure
 
@@ -130,6 +140,8 @@ zeno-app/
 └── package.json
 ```
 
+---
+
 ## 🖼️ Image Generation
 
 Generate AI images directly in the chat — **no API key needed!** Powered by [Pollinations.ai](https://pollinations.ai) (free, open-source).
@@ -155,6 +167,8 @@ Just type naturally:
 | Portrait | Flux | 720×1280 |
 | Fast | Turbo | 512×512 |
 
+---
+
 ## 📄 File Upload & Analysis
 
 Upload documents and ask ZENO questions about their content — RAG-style analysis.
@@ -175,6 +189,8 @@ Upload documents and ask ZENO questions about their content — RAG-style analys
 3. Ask any question — ZENO will use the file content as context
 4. Upload up to 3 files at once, max 10MB each
 
+---
+
 ## 🎤 Voice Commands
 
 - Click the **microphone button** to start speaking
@@ -182,18 +198,52 @@ Upload documents and ask ZENO questions about their content — RAG-style analys
 - Enable **auto-speak** (speaker icon in header) for ZENO to read responses aloud
 - Click **"Speak"** on any response to hear it
 
-## ⚙️ API Keys Required
+---
 
-| Key | Where to Get | Required? |
-|-----|-------------|-----------|
-| `GROQ_API_KEY` | [Groq Console](https://console.groq.com/keys) | Yes |
-| `COHERE_API_KEY` | [Cohere Dashboard](https://dashboard.cohere.com/api-keys) | Optional (fallback) |
-| `MONGODB_URI` | [MongoDB Atlas](https://www.mongodb.com/atlas) or local MongoDB | Yes |
-| `GOOGLE_CLIENT_ID` | [Google Cloud Console](https://console.cloud.google.com/apis/credentials) | Yes |
-| `GOOGLE_CLIENT_SECRET` | [Google Cloud Console](https://console.cloud.google.com/apis/credentials) | Yes |
-| `NEXTAUTH_SECRET` | Run `openssl rand -base64 32` or any random string | Yes |
+## ⚙️ Environment Variables
+
+Create a `.env.local` file in the `zeno-app` directory with the following variables:
+
+| Variable | Description | Required | Where to Get |
+|----------|-------------|----------|--------------|
+| `GROQ_API_KEY` | Primary AI provider API key | ✅ Yes | [Groq Console](https://console.groq.com/keys) |
+| `COHERE_API_KEY` | Fallback AI provider API key | ⚠️ Optional | [Cohere Dashboard](https://dashboard.cohere.com/api-keys) |
+| `MONGODB_URI` | MongoDB connection string | ✅ Yes | [MongoDB Atlas](https://www.mongodb.com/atlas) or local |
+| `JWT_SECRET` | Secret key for JWT tokens | ⚠️ Optional | Any random string |
+| `NEXT_PUBLIC_APP_NAME` | App name displayed in UI | ⚠️ Optional | Default: `ZENO` |
+| `NEXT_PUBLIC_API_URL` | API base URL | ⚠️ Optional | Default: `http://localhost:3000/api` |
+| `SERVER_PORT` | Server port number | ⚠️ Optional | Default: `3000` |
+| `GOOGLE_CLIENT_ID` | Google OAuth Client ID | ✅ Yes | [Google Cloud Console](https://console.cloud.google.com/apis/credentials) |
+| `GOOGLE_CLIENT_SECRET` | Google OAuth Client Secret | ✅ Yes | [Google Cloud Console](https://console.cloud.google.com/apis/credentials) |
+| `NEXTAUTH_SECRET` | NextAuth.js encryption secret | ✅ Yes | Run `openssl rand -base64 32` |
+| `NEXTAUTH_URL` | App URL for NextAuth | ✅ Yes | `http://localhost:3000` (dev) |
+
+### Example `.env.local`
+
+```env
+# AI Providers
+GROQ_API_KEY=gsk_your_groq_api_key_here
+COHERE_API_KEY=your_cohere_api_key_here
+
+# Database
+MONGODB_URI=mongodb+srv://username:password@cluster.mongodb.net/zeno
+
+# Authentication
+JWT_SECRET=your_jwt_secret_here
+GOOGLE_CLIENT_ID=your_google_client_id.apps.googleusercontent.com
+GOOGLE_CLIENT_SECRET=GOCSPX-your_google_client_secret
+NEXTAUTH_SECRET=your_nextauth_secret_here
+NEXTAUTH_URL=http://localhost:3000
+
+# App Config
+NEXT_PUBLIC_APP_NAME=ZENO
+NEXT_PUBLIC_API_URL=http://localhost:3000/api
+SERVER_PORT=3000
+```
 
 > **Note:** Image generation uses Pollinations.ai which is completely free — no API key needed!
+
+---
 
 ## 🔐 Authentication Flow
 
@@ -205,4 +255,28 @@ Upload documents and ask ZENO questions about their content — RAG-style analys
 
 ---
 
-**Built with love by the ZENO team**
+## 📜 License
+
+This project is open source and available under the [MIT License](LICENSE).
+
+---
+
+## 🤝 Contributing
+
+Contributions are welcome! Feel free to open an issue or submit a pull request.
+
+1. Fork the repository
+2. Create your feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add some amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
+
+---
+
+<div align="center">
+
+**Built with ❤️ by [Dushyant](https://github.com/Dushyant-2004)**
+
+⭐ Star this repo if you find it helpful!
+
+</div>
