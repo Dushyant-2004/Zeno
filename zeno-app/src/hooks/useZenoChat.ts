@@ -218,128 +218,67 @@ export function useZenoChat(): UseZenoChatReturn {
     [isLoading, sessionId]
   );
 
-  const sendMessageStream = useCallback(
-    async (content: string, isVoice = false) => {
-      if (!content.trim() || isLoading) return;
+ const sendMessageStream = useCallback(
+  async (content: string, isVoice = false) => {
+    if (!content.trim() || isLoading) return;
 
-      // Check if this is an image generation request
-      if (isImageRequest(content)) {
-        return sendImageRequest(content, isVoice);
+    // If it's an image request, use image API
+    if (isImageRequest(content)) {
+      return sendImageRequest(content, isVoice);
+    }
+
+    const userMessage: Message = {
+      id: uuidv4(),
+      role: "user",
+      content: content.trim(),
+      timestamp: new Date(),
+      isVoice,
+    };
+
+    setMessages((prev) => [...prev, userMessage]);
+    setIsLoading(true);
+    setError(null);
+
+    try {
+      const response = await fetch("/api/chat", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          message: content.trim(),
+          sessionId,
+          isVoice,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok || !data.success) {
+        throw new Error(data.error || "Failed to get response");
       }
 
-      // Abort previous stream if any
-      if (abortControllerRef.current) {
-        abortControllerRef.current.abort();
-      }
-
-      const controller = new AbortController();
-      abortControllerRef.current = controller;
-
-      const userMessage: Message = {
-        id: uuidv4(),
-        role: "user",
-        content: content.trim(),
-        timestamp: new Date(),
-        isVoice,
-      };
-
-      const assistantMessageId = uuidv4();
       const assistantMessage: Message = {
-        id: assistantMessageId,
+        id: uuidv4(),
         role: "assistant",
-        content: "",
-        timestamp: new Date(),
-        isStreaming: true,
+        content: data.message.content,
+        timestamp: new Date(data.message.timestamp),
       };
 
-      setMessages((prev) => [...prev, userMessage, assistantMessage]);
-      setIsLoading(true);
-      setError(null);
+      setMessages((prev) => [...prev, assistantMessage]);
 
-      try {
-        const response = await fetch("/api/chat/", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            message: content.trim(),
-            sessionId,
-            isVoice,
-          }),
-          signal: controller.signal,
-        });
-
-        if (!response.ok) {
-          throw new Error("Failed to connect to stream");
-        }
-
-        const reader = response.body?.getReader();
-        if (!reader) throw new Error("No response body");
-
-        const decoder = new TextDecoder();
-
-        while (true) {
-          const { done, value } = await reader.read();
-          if (done) break;
-
-          const text = decoder.decode(value);
-          const lines = text.split("\n").filter((line) => line.startsWith("data: "));
-
-          for (const line of lines) {
-            try {
-              const data = JSON.parse(line.replace("data: ", ""));
-
-              if (data.error) {
-                throw new Error(data.error);
-              }
-
-              if (data.content) {
-                setMessages((prev) =>
-                  prev.map((msg) =>
-                    msg.id === assistantMessageId
-                      ? { ...msg, content: msg.content + data.content }
-                      : msg
-                  )
-                );
-              }
-
-              if (data.done) {
-                setMessages((prev) =>
-                  prev.map((msg) =>
-                    msg.id === assistantMessageId
-                      ? { ...msg, isStreaming: false }
-                      : msg
-                  )
-                );
-                if (data.sessionId) {
-                  setSessionId(data.sessionId);
-                }
-              }
-            } catch (parseErr) {
-              // Skip malformed chunks
-              if ((parseErr as Error).message !== "Unexpected end of JSON input") {
-                console.warn("Stream parse warning:", parseErr);
-              }
-            }
-          }
-        }
-      } catch (err: unknown) {
-        if ((err as Error).name === "AbortError") return;
-        const error = err as { message?: string };
-        setError(error.message || "Stream error occurred");
-        setMessages((prev) =>
-          prev.map((msg) =>
-            msg.id === assistantMessageId
-              ? { ...msg, isStreaming: false, content: msg.content || "Sorry, an error occurred." }
-              : msg
-          )
-        );
-      } finally {
-        setIsLoading(false);
-        abortControllerRef.current = null;
+      if (data.sessionId) {
+        setSessionId(data.sessionId);
       }
-    },
-    [isLoading, sessionId, isImageRequest, sendImageRequest]
-  );
+    } catch (err: unknown) {
+      const error = err as { message?: string };
+      setError(error.message || "An unexpected error occurred");
+    } finally {
+      setIsLoading(false);
+    }
+  },
+  [isLoading, sessionId, isImageRequest, sendImageRequest]
+);
 
   const loadConversation = useCallback(async (targetSessionId: string) => {
     try {
