@@ -222,7 +222,7 @@ export function useZenoChat(): UseZenoChatReturn {
   async (content: string, isVoice = false) => {
     if (!content.trim() || isLoading) return;
 
-    // If it's an image request, use image API
+    // If image request → use image API
     if (isImageRequest(content)) {
       return sendImageRequest(content, isVoice);
     }
@@ -235,6 +235,7 @@ export function useZenoChat(): UseZenoChatReturn {
       isVoice,
     };
 
+    // Immediately show user message
     setMessages((prev) => [...prev, userMessage]);
     setIsLoading(true);
     setError(null);
@@ -254,6 +255,8 @@ export function useZenoChat(): UseZenoChatReturn {
 
       const data = await response.json();
 
+      console.log("CHAT API RESPONSE:", data); // 🔍 Debug
+
       if (!response.ok || !data.success) {
         throw new Error(data.error || "Failed to get response");
       }
@@ -261,11 +264,15 @@ export function useZenoChat(): UseZenoChatReturn {
       const assistantMessage: Message = {
         id: uuidv4(),
         role: "assistant",
-        content: data.message.content,
-        timestamp: new Date(data.message.timestamp),
+        content: data?.message?.content || "No response received.",
+        timestamp: new Date(),
+        isStreaming: false,
       };
 
-      setMessages((prev) => [...prev, assistantMessage]);
+      // IMPORTANT: use functional update properly
+      setMessages((prev) => {
+        return [...prev, assistantMessage];
+      });
 
       if (data.sessionId) {
         setSessionId(data.sessionId);
@@ -273,6 +280,16 @@ export function useZenoChat(): UseZenoChatReturn {
     } catch (err: unknown) {
       const error = err as { message?: string };
       setError(error.message || "An unexpected error occurred");
+
+      setMessages((prev) => [
+        ...prev,
+        {
+          id: uuidv4(),
+          role: "assistant",
+          content: "Sorry, something went wrong.",
+          timestamp: new Date(),
+        },
+      ]);
     } finally {
       setIsLoading(false);
     }
